@@ -6,6 +6,10 @@ project adheres to [Semantic Versioning](http://semver.org/).
 ## Unreleased
 
 
+## 0.0.2
+
+Lorem Ipsum
+
 ## 0.0.1
 
 This release is a release engineering experiment, designed to test out our Github Release automation.
