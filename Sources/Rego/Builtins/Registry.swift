@@ -12,7 +12,6 @@ public struct BuiltinContext {
     internal let rand: Ptr<RandomNumberGenerator>
 
     init(
-
         location: OPA.Trace.Location = .init(),
         tracer: OPA.Trace.QueryTracer? = nil,
         cache: Ptr<BuiltinsCache>? = nil,
@@ -43,6 +42,11 @@ public struct BuiltinRegistry: Sendable {
         BuiltinRegistry(
             builtins: BuiltinRegistry.defaultBuiltins
         )
+    }
+
+    /// This retrieves the full OPA-style metadata structs for every supported builtin.
+    internal static var defaultBuiltinMetadata: [String: BuiltinMetadata] {
+        BuiltinMetadata.defaultBuiltinMetadata
     }
 
     internal static var defaultBuiltins: [String: Builtin] {
