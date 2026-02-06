@@ -24,13 +24,14 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.5.0"),
         .package(url: "https://github.com/apple/swift-crypto.git", "1.0.0"..<"4.0.0"),
+        .package(url: "https://github.com/apple/containerization", from: "0.25.0"),
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.
         .target(
             name: "SwiftOPA",
-            dependencies: ["AST", "IR", "Rego"]
+            dependencies: ["AST", "IR", "Rego", "SDK"]
         ),
         .target(name: "AST"),
         .target(
@@ -43,6 +44,15 @@ let package = Package(
                 "AST",
                 "IR",
                 .product(name: "Crypto", package: "swift-crypto", condition: .when(platforms: [.linux])),
+            ]
+        ),
+        .target(
+            name: "SDK",
+            dependencies: [
+                "AST",
+                "IR",
+                "Rego",
+                .product(name: "ContainerizationArchive", package: "containerization"),
             ]
         ),
         // Internal module tests
