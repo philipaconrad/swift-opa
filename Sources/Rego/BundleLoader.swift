@@ -1,10 +1,10 @@
 import AST
 import Foundation
 
-struct BundleLoader {
+public struct BundleLoader {
     var bundleFiles: any Sequence<Result<BundleFile, any Swift.Error>>
 
-    init(fromFileSequence files: any Sequence<Result<BundleFile, any Swift.Error>>) {
+    public init(fromFileSequence files: any Sequence<Result<BundleFile, any Swift.Error>>) {
         self.bundleFiles = files
     }
 

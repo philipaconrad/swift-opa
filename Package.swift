@@ -8,7 +8,7 @@ import class Foundation.ProcessInfo
 let package = Package(
     name: "swift-opa",
     platforms: [
-        .macOS(.v13),
+        .macOS(.v15),
         .iOS(.v16),
     ],
     products: [
@@ -25,6 +25,7 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.5.0"),
         .package(url: "https://github.com/apple/swift-crypto.git", "1.0.0"..<"4.0.0"),
         .package(url: "https://github.com/apple/containerization", from: "0.25.0"),
+        .package(url: "https://github.com/apple/swift-nio-extras", from: "1.32.0"),
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
@@ -53,6 +54,7 @@ let package = Package(
                 "IR",
                 "Rego",
                 .product(name: "ContainerizationArchive", package: "containerization"),
+                .product(name: "NIOHTTPCompression", package: "swift-nio-extras"),
             ]
         ),
         // Internal module tests
