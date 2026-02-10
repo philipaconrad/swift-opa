@@ -17,7 +17,7 @@ public struct BundleLoader {
         case unsupported(String)
     }
 
-    func load() throws -> OPA.Bundle {
+    public func load() throws -> OPA.Bundle {
         // Unwrap files, throw first error if we encounter one
         let files: [BundleFile] = try bundleFiles.map { try $0.get() }
 
