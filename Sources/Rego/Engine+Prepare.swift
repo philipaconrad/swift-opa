@@ -1,6 +1,11 @@
 import AST
-import Foundation
 import IR
+
+#if canImport(FoundationEssentials)
+    import FoundationEssentials
+#else
+    import Foundation
+#endif
 
 extension OPA.Engine {
     // The decoder used to decode the capabilities file

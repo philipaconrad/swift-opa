@@ -1,8 +1,13 @@
 import AST
-import Foundation
 import Testing
 
 @testable import Rego
+
+#if canImport(FoundationEssentials)
+    import FoundationEssentials
+#else
+    import Foundation
+#endif
 
 extension BuiltinTests {
     @Suite("BuiltinTests - Rand", .tags(.builtins))

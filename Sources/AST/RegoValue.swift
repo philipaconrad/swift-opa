@@ -1,5 +1,10 @@
 import CoreFoundation
-import Foundation
+
+#if canImport(FoundationEssentials)
+    import FoundationEssentials
+#else
+    import Foundation
+#endif
 
 /// RegoValue represents structured data over which policy can be evaluated.
 ///

@@ -1,4 +1,8 @@
-import Foundation
+#if canImport(FoundationEssentials)
+    import FoundationEssentials
+#else
+    import Foundation
+#endif
 
 extension RegoValue: ExpressibleByDictionaryLiteral {
     public typealias Key = String

@@ -1,5 +1,10 @@
 import AST
-import Foundation
+
+#if canImport(FoundationEssentials)
+    import FoundationEssentials
+#else
+    import Foundation
+#endif
 
 // BuiltinFuncs is a wrapper around all the well defined (and implemented in swift)
 // Rego builtin functions. The functions are implemented in files following the

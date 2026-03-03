@@ -1,7 +1,12 @@
 import AST
 import Benchmark
-import Foundation
 internal import Rego
+
+#if canImport(FoundationEssentials)
+    import FoundationEssentials
+#else
+    import Foundation
+#endif
 
 let benchmarks: @Sendable () -> Void = {
     Benchmark.defaultConfiguration.timeUnits = .nanoseconds

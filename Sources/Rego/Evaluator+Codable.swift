@@ -1,5 +1,10 @@
 import AST
-import Foundation
+
+#if canImport(FoundationEssentials)
+    import FoundationEssentials
+#else
+    import Foundation
+#endif
 
 // Helpers for encoding a ResultSet
 

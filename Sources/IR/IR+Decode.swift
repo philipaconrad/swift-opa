@@ -3,7 +3,11 @@
 //  Decoding/deserializing extensions for IR
 //
 
-import Foundation
+#if canImport(FoundationEssentials)
+    import FoundationEssentials
+#else
+    import Foundation
+#endif
 
 extension Policy {
     public init(jsonData rawJson: Data) throws {

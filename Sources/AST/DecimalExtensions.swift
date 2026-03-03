@@ -1,4 +1,8 @@
-import Foundation
+#if canImport(FoundationEssentials)
+    import FoundationEssentials
+#else
+    import Foundation
+#endif
 
 extension BinaryFloatingPoint {
     /// Convert a binary floating point value to Decimal with precision preservation.

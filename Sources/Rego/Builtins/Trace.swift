@@ -1,5 +1,10 @@
 import AST
-import Foundation
+
+#if canImport(FoundationEssentials)
+    import FoundationEssentials
+#else
+    import Foundation
+#endif
 
 extension BuiltinFuncs {
     // trace(note) allows for inserting events into the trace from a Rego policy.

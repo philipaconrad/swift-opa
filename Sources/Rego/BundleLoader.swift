@@ -1,5 +1,10 @@
 import AST
-import Foundation
+
+#if canImport(FoundationEssentials)
+    import FoundationEssentials
+#else
+    import Foundation
+#endif
 
 struct BundleLoader {
     var bundleFiles: any Sequence<Result<BundleFile, any Swift.Error>>

@@ -1,5 +1,10 @@
 import AST
-import Foundation
+
+#if canImport(FoundationEssentials)
+    import FoundationEssentials
+#else
+    import Foundation
+#endif
 
 /// BuiltinsCache defines the caching strategy used by the top-down evaluation.
 /// Note that Golang implementation uses `type FooCachingKey string` approach to redefine string keys as distinct types.

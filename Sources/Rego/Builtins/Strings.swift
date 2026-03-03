@@ -1,5 +1,10 @@
 import AST
-import Foundation
+
+#if canImport(FoundationEssentials)
+    import FoundationEssentials
+#else
+    import Foundation
+#endif
 
 extension BuiltinFuncs {
     // can't use CharacterSet.whitespacesAndNewlines because it does not contain

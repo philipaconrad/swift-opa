@@ -1,10 +1,15 @@
 import AST
-import Foundation
 import IR
 import Testing
 
 @testable import Rego
 @testable import RegoCompliance
+
+#if canImport(FoundationEssentials)
+    import FoundationEssentials
+#else
+    import Foundation
+#endif
 
 extension Tag {
     @Tag static var compliance: Self

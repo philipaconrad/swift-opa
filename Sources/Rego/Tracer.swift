@@ -1,5 +1,10 @@
-import Foundation
 import IR
+
+#if canImport(FoundationEssentials)
+    import FoundationEssentials
+#else
+    import Foundation
+#endif
 
 extension OPA {
     /// Namespace for tracing-related types

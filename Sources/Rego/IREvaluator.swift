@@ -1,6 +1,11 @@
 import AST
-import Foundation
 import IR
+
+#if canImport(FoundationEssentials)
+    import FoundationEssentials
+#else
+    import Foundation
+#endif
 
 let localIdxInput = Local(0)
 let localIdxData = Local(1)

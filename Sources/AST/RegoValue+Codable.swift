@@ -1,5 +1,10 @@
 import CoreFoundation
-import Foundation
+
+#if canImport(FoundationEssentials)
+    import FoundationEssentials
+#else
+    import Foundation
+#endif
 
 // Helper for differentiating between an NSNumber which a boolean vs. a number.
 // We're trying to avoid confusing NSNumber(0) from false and NSNumber(1) from true.

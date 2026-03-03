@@ -1,5 +1,10 @@
 import AST
-import Foundation
+
+#if canImport(FoundationEssentials)
+    import FoundationEssentials
+#else
+    import Foundation
+#endif
 
 extension BuiltinFuncs {
     static func isArray(ctx: BuiltinContext, args: [AST.RegoValue]) async throws -> AST.RegoValue {

@@ -1,7 +1,12 @@
 import AST
 import ArgumentParser
-import Foundation
 import Rego
+
+#if canImport(FoundationEssentials)
+    import FoundationEssentials
+#else
+    import Foundation
+#endif
 
 // EvalOptions are common options for evaluating a bundle.
 // This is shared by related commands.

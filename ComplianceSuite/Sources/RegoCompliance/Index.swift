@@ -1,4 +1,8 @@
-import Foundation
+#if canImport(FoundationEssentials)
+    import FoundationEssentials
+#else
+    import Foundation
+#endif
 
 // CaseIndex is an index of test cases.
 // [ {"file": "...", "note": ["", "", ...] } ]

@@ -1,5 +1,9 @@
 // Duration - This file contains helpers for working with and formatting Durations.
-import Foundation
+#if canImport(FoundationEssentials)
+    import FoundationEssentials
+#else
+    import Foundation
+#endif
 
 // This magic makes our factory available in "." format from Duration.formatted, which is defined as:
 // public func formatted<S>(_ v: S) -> S.FormatOutput where S : FormatStyle, S.FormatInput == Duration

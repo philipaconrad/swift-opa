@@ -1,4 +1,8 @@
-import Foundation
+#if canImport(FoundationEssentials)
+    import FoundationEssentials
+#else
+    import Foundation
+#endif
 
 /// RegoNumber represents numeric values in Rego using native Swift types.
 /// The internal storage (.int vs .decimal) indicates Rego's float type semantics.

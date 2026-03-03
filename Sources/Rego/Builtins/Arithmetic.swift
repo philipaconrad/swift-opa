@@ -1,5 +1,10 @@
 import AST
-import Foundation
+
+#if canImport(FoundationEssentials)
+    import FoundationEssentials
+#else
+    import Foundation
+#endif
 
 // A bunch of these rego builtins shadow global functions
 // this probably isn't the best idea... but we'll alias them here

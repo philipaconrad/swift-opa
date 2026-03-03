@@ -1,7 +1,12 @@
 import AST
-import Foundation
 import IR
 import Rego
+
+#if canImport(FoundationEssentials)
+    import FoundationEssentials
+#else
+    import Foundation
+#endif
 
 public struct ComplianceTesting {
     // Compliance test suite generated from upstream cases

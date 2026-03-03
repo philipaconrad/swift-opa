@@ -1,6 +1,11 @@
 import ArgumentParser
-import Foundation
 import Rego
+
+#if canImport(FoundationEssentials)
+    import FoundationEssentials
+#else
+    import Foundation
+#endif
 
 struct CapabilitiesCommand: AsyncParsableCommand {
     static let configuration = CommandConfiguration(

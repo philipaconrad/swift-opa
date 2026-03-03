@@ -1,9 +1,14 @@
 import AST
-import Foundation
 import IR
 import Testing
 
 @testable import Rego
+
+#if canImport(FoundationEssentials)
+    import FoundationEssentials
+#else
+    import Foundation
+#endif
 
 @Suite("CapabilityEvaluatorTests", .timeLimit(.minutes(1)))
 struct CapabilityEvaluatorTests {
