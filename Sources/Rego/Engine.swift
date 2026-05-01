@@ -171,12 +171,58 @@ extension OPA.Engine {
             loadedBundles[path.name] = b
         }
 
-        // Verify correctness of this bundle set
+        // Verify correctness of this bundle set (no overlapping roots).
         try OPA.Bundle.checkBundlesForOverlap(bundleSet: loadedBundles)
 
-        // Patch all the bundle data into the data tree on the store
+        // Verify each bundle's data is contained under its roots.
+        for (name, bundle) in loadedBundles.sorted(by: { $0.key < $1.key }) {
+            do {
+                try bundle.validate()
+            } catch {
+                throw RegoError(
+                    code: .bundleLoadError,
+                    message: "failed to validate bundle \(name)",
+                    cause: error
+                )
+            }
+        }
+
+        // Write each bundle's data into the store at paths corresponding to
+        // the bundle's declared roots. `checkBundlesForOverlap` guarantees
+        // these root paths are disjoint across bundles, so the per-root
+        // writes below cannot collide — each bundle contributes only within
+        // the subtree it "owns".
+        //
+        // A bundle with no data under one of its roots simply writes nothing
+        // for that root (e.g. a policy-only bundle whose roots describe
+        // decision paths rather than data paths).
+        try await store.write(to: StoreKeyPath(["data"]), value: .object([:]))
         for (_, bundle) in loadedBundles.sorted(by: { $0.key < $1.key }) {
-            try await store.write(to: StoreKeyPath(["data"]), value: bundle.data)
+            let roots = bundle.manifest.roots
+            for root in roots.sorted() {
+                let rootSegments = root.split(separator: "/").map(String.init)
+
+                // Walk bundle.data down to the subtree the bundle actually
+                // contributes for this root. If any segment is missing or
+                // isn't an object, this bundle has nothing to contribute
+                // for this root and we skip.
+                var subtree: AST.RegoValue = bundle.data
+                var found = true
+                for segment in rootSegments {
+                    guard case .object(let obj) = subtree,
+                        let next = obj[.string(segment)]
+                    else {
+                        found = false
+                        break
+                    }
+                    subtree = next
+                }
+                guard found else { continue }
+
+                // Write the subtree at ["data"] + rootSegments.
+                let storePath = StoreKeyPath(["data"] + rootSegments)
+                try await store.write(to: storePath, value: subtree)
+            }
         }
 
         let evaluator: IREvaluator
