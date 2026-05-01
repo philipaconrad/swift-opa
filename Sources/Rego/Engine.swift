@@ -9,7 +9,7 @@ extension OPA {
         private var bundlePaths: [BundlePath]?
 
         // bundles are bundles after loading from disk
-        private var bundles: [String: OPA.Bundle] = [:]
+        private var bundles: BundleCache = BundleCache(bundles: [:])
 
         // directly load IR Policies, mostly useful for testing
         private var policies: [IR.Policy] = []
@@ -59,7 +59,7 @@ extension OPA.Engine {
         capabilities: CapabilitiesInput? = nil,
         customBuiltins: [String: Builtin] = [:]
     ) {
-        self.bundles = bundles
+        self.bundles = BundleCache(bundles: bundles)
         self.capabilities = capabilities
         self.customBuiltins = customBuiltins
     }
@@ -127,6 +127,10 @@ extension OPA.Engine {
     /// and prepares the provided query for evaluation.
     /// Uses default + custom builtins (specified at ``OPA/Engine`` initialization) to validate and evaluate builtin calls.
     ///
+    /// ## Store Behavior
+    /// When this method is called, any data in the store will be overwritten with the current combined
+    /// data tree available from the loaded bundles (including anything from bundles loaded from disk).
+    ///
     /// - Parameters:
     ///   - query: The query to prepare evaluation for.
     /// - Returns: A PreparedQuery that can be used to evaluate the given query.
@@ -148,43 +152,46 @@ extension OPA.Engine {
         )
         let mergedBuiltinRegistry = BuiltinRegistry(builtins: builtins)
 
-        // Load all the bundles from disk
-        // This includes parsing their data trees, etc.
-        var loadedBundles = self.bundles
-        for path in bundlePaths ?? [] {
-            guard loadedBundles[path.name] == nil else {
-                throw RegoError(
-                    code: .bundleNameConflictError,
-                    message: "encountered conflicting bundle names: \(path.name)"
-                )
+        // Bundles supplied via `init(bundles:)` live in `self.bundles` and are
+        // validated once at construction. We never mutate that cache here so
+        // repeated calls reuse its cached validation and overlap results.
+        //
+        // Bundles referenced via `init(bundlePaths:)` are (re)read from disk on
+        // every call and staged on top of a copy of the base cache.
+        var diskLoaded: [String: OPA.Bundle] = [:]
+        if let bundlePaths, !bundlePaths.isEmpty {
+            // Snapshot cached names once for cheap conflict checks below.
+            let cachedNames = Set(try self.bundles.validated().keys)
+
+            for path in bundlePaths {
+                guard !cachedNames.contains(path.name), diskLoaded[path.name] == nil else {
+                    throw RegoError(
+                        code: .bundleNameConflictError,
+                        message: "encountered conflicting bundle names: \(path.name)"
+                    )
+                }
+                do {
+                    diskLoaded[path.name] = try BundleLoader.load(fromFile: path.url)
+                } catch {
+                    throw RegoError(
+                        code: .bundleLoadError,
+                        message: "failed to load bundle \(path.name)",
+                        cause: error
+                    )
+                }
             }
-            var b: OPA.Bundle
-            do {
-                b = try BundleLoader.load(fromFile: path.url)
-            } catch {
-                throw RegoError(
-                    code: .bundleLoadError,
-                    message: "failed to load bundle \(path.name)",
-                    cause: error
-                )
-            }
-            loadedBundles[path.name] = b
         }
 
-        // Verify correctness of this bundle set (no overlapping roots).
-        try OPA.Bundle.checkBundlesForOverlap(bundleSet: loadedBundles)
-
-        // Verify each bundle's data is contained under its roots.
-        for (name, bundle) in loadedBundles.sorted(by: { $0.key < $1.key }) {
-            do {
-                try bundle.validate()
-            } catch {
-                throw RegoError(
-                    code: .bundleLoadError,
-                    message: "failed to validate bundle \(name)",
-                    cause: error
-                )
-            }
+        // Fast path for the common case: no disk bundles -> use the base cache
+        // directly. Slow path: stage disk bundles on top of a copy so we can
+        // run a single validation/overlap check over the combined set.
+        let loadedBundles: [String: OPA.Bundle]
+        if diskLoaded.isEmpty {
+            loadedBundles = try self.bundles.validated()
+        } else {
+            let workingCache = BundleCache(copying: self.bundles)
+            workingCache.add(bundles: diskLoaded)
+            loadedBundles = try workingCache.validated()
         }
 
         // Write each bundle's data into the store at paths corresponding to
@@ -227,9 +234,9 @@ extension OPA.Engine {
 
         let evaluator: IREvaluator
 
-        if self.policies.count > 0 {
+        if !self.policies.isEmpty {
             guard loadedBundles.isEmpty else {
-                throw RegoError.init(code: .invalidArgumentError, message: "Cannot mix direct IR policies with bundles")
+                throw RegoError(code: .invalidArgumentError, message: "Cannot mix direct IR policies with bundles")
             }
 
             evaluator = try IREvaluator(policies: self.policies)
