@@ -5,6 +5,44 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+## 0.0.5
+
+This release contains bugfixes for multi-bundle use cases, performance improvements, and new builtin implementations!
+
+### `strings.any_prefix_match`, `strings.any_suffix_match`, `strings.replace_n`, and `strings.render_template` functions (#135)
+
+Swift OPA now supports several new `strings` builtins:
+ - [`strings.any_prefix_match`](https://www.openpolicyagent.org/docs/policy-reference/builtins/strings#builtin-strings-stringsany_prefix_match)
+ - [`strings.any_suffix_match`](https://www.openpolicyagent.org/docs/policy-reference/builtins/strings#builtin-strings-stringsany_suffix_match)
+ - [`strings.replace_n`](https://www.openpolicyagent.org/docs/policy-reference/builtins/strings#builtin-strings-stringsreplace_n)
+ - [`strings.render_template`](https://www.openpolicyagent.org/docs/policy-reference/builtins/strings#builtin-strings-stringsrender_template)
+
+These builtins provide powerful new string match and formatting capabilities.
+
+Authored by @DFrenkel
+
+### Better support for multi-bundle data merge (#139)
+
+The `Engine` now correctly merges together data trees from separate bundles, and properly supports separate data and policy bundles.
+Before, it was possible for two bundles to overwrite each other's data sub-trees, and no validation was done at runtime to confirm that a bundle actually had its data contained properly under its declared roots.
+
+Both issues were fixed by adding the needed validation checks and updated merge logic to `Engine.prepareForEvaluation`.
+
+Authored by @philipaconrad
+
+### Performance improvements (#141)
+
+In this release, `Engine.prepareForEvaluation` now caches validation work done on the set of loaded bundles.
+We validate both that bundles' data is fully contained under their declared roots, and that bundle roots do not conflict with each other.
+The cache allows skipping redundant validation work when many queries need to be prepared on the same set of bundles.
+
+Authored by @philipaconrad
+
+### Miscellaneous
+
+ - perf: fix benchmark bundle path and surface prepareForEvaluation errors (#133) authored by @koponen
+
+
 ## 0.0.4
 
 This release contains an overhaul to the IR evaluator that should improve performance significantly for many workloads.
