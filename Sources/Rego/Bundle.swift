@@ -26,10 +26,10 @@ extension OPA {
             }
         }
 
-        // validate runs integrity checks on the bundle, such as
-        // verifying that all data is contained under the bundle roots.
-        // Because this can be an expensive check, it is not done at
-        // init time.
+        /// ``validate`` runs integrity checks on the bundle, such as
+        /// verifying that all data is contained under the bundle roots.
+        /// Because this can be an expensive check, it is not done at
+        /// init time.
         public func validate() throws(BundleError) {
             try OPA.Bundle.checkDataCoveredByRoots(data: self.data, roots: self.manifest.roots)
         }
