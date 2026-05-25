@@ -24,13 +24,14 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.5.0"),
         .package(url: "https://github.com/apple/swift-crypto.git", "1.0.0"..<"5.0.0"),
+        .package(url: "https://github.com/pointfreeco/swift-parsing", from: "0.13.0"),
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.
         .target(
             name: "SwiftOPA",
-            dependencies: ["AST", "IR", "Bytecode", "Rego"]
+            dependencies: ["AST", "IR", "Bytecode", "Parser", "Rego"]
         ),
         .target(name: "AST"),
         .target(
@@ -40,6 +41,13 @@ let package = Package(
         .target(
             name: "Bytecode",
             dependencies: ["AST", "IR"]
+        ),
+        .target(
+            name: "Parser",
+            dependencies: [
+                "AST",
+                .product(name: "Parsing", package: "swift-parsing"),
+            ]
         ),
         .target(
             name: "Rego",
@@ -63,6 +71,10 @@ let package = Package(
         .testTarget(
             name: "BytecodeTests",
             dependencies: ["AST", "IR", "Bytecode"]
+        ),
+        .testTarget(
+            name: "ParserTests",
+            dependencies: ["Parser"]
         ),
         .testTarget(
             name: "RegoTests",
