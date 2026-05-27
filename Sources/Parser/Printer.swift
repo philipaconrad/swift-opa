@@ -46,15 +46,8 @@ public struct Printer {
     private func emit(_ ref: NodeRef, indent: Int) -> String {
         switch arena.node(at: ref) {
         case .module(let pkg, let imports, let rules):
-            var sections: [String] = [emit(pkg, indent: indent)]
-            if !imports.isEmpty {
-                sections.append(
-                    imports.map { emit($0, indent: indent) }.joined(separator: "\n"))
-            }
-            for r in rules {
-                sections.append(emit(r, indent: indent))
-            }
-            return sections.joined(separator: "\n\n")
+            return emitModule(
+                pkg: pkg, imports: imports, rules: rules, indent: indent)
 
         case .packageDecl(let path):
             return "package " + emit(path, indent: indent)
@@ -261,7 +254,8 @@ public struct Printer {
     }
 
     /// Render a `query` node as a multi-line `{ … }` brace body, with each
-    /// literal indented one level deeper than `indent`.
+    /// literal indented one level deeper than `indent`. Each literal is
+    /// wrapped with its bound leading/trailing comments.
     private func emitBraceBody(_ queryRef: NodeRef, indent: Int) -> String {
         guard case .query(let lits) = arena.node(at: queryRef) else {
             // Defensive: a body should always be a query node, but emit a
@@ -270,7 +264,9 @@ public struct Printer {
         }
         if lits.isEmpty { return "{}" }
         let pad = String(repeating: "\t", count: indent + 1)
-        let inner = lits.map { pad + emit($0, indent: indent + 1) }.joined(separator: "\n")
+        let inner = lits.map { lit in
+            indentLines(emitWithBindings(lit, indent: indent + 1), by: pad)
+        }.joined(separator: "\n")
         let close = String(repeating: "\t", count: indent)
         return "{\n" + inner + "\n" + close + "}"
     }
@@ -282,6 +278,125 @@ public struct Printer {
             return emit(queryRef, indent: indent)
         }
         return lits.map { emit($0, indent: indent) }.joined(separator: "; ")
+    }
+
+    // MARK: - Comment-aware emission
+
+    /// Emit a node wrapped with its bound leading and trailing comments.
+    ///
+    /// The output is unindented at the first column; callers that need
+    /// indentation should pass the result through `indentLines` afterward.
+    /// Multiple leading-comment groups are separated by blank lines;
+    /// trailing comments are appended on the node's last line, separated
+    /// by a single space.
+    private func emitWithBindings(_ ref: NodeRef, indent: Int) -> String {
+        let leadingGroups = arena.bindings.leadingGroups(of: ref)
+        let trailingComments = arena.bindings.trailingComments(of: ref)
+
+        var output = ""
+        for (g, group) in leadingGroups.enumerated() {
+            if g > 0 { output += "\n\n" }
+            for (j, c) in group.enumerated() {
+                if j > 0 { output += "\n" }
+                output += c.text
+            }
+        }
+        if !output.isEmpty { output += "\n" }
+
+        output += emit(ref, indent: indent)
+
+        for tc in trailingComments {
+            output += " " + tc.text
+        }
+        return output
+    }
+
+    /// Apply `pad` to every non-empty line of `s`. Empty lines remain
+    /// empty (so blank-line separators between leading-comment groups
+    /// don't pick up stray indent).
+    private func indentLines(_ s: String, by pad: String) -> String {
+        s.split(separator: "\n", omittingEmptySubsequences: false).map { line in
+            line.isEmpty ? "" : pad + String(line)
+        }.joined(separator: "\n")
+    }
+
+    /// Group consecutive comments that sit on adjacent source lines into
+    /// runs. Used to break freestanding comments back into the visual
+    /// blocks the source had — a blank line between two comments yields
+    /// two groups instead of one.
+    private func groupConsecutive(_ comments: [Comment]) -> [[Comment]] {
+        var groups: [[Comment]] = []
+        var current: [Comment] = []
+        for c in comments {
+            if let last = current.last, c.span.start.line == last.span.start.line + 1 {
+                current.append(c)
+            } else {
+                if !current.isEmpty { groups.append(current) }
+                current = [c]
+            }
+        }
+        if !current.isEmpty { groups.append(current) }
+        return groups
+    }
+
+    /// True if `ref` is an `importDecl`. Used to decide whether the gap
+    /// between two top-level constructs should be a single newline (tight
+    /// imports) or a blank line.
+    private func isImportDecl(_ ref: NodeRef) -> Bool {
+        if case .importDecl = arena.node(at: ref) { return true }
+        return false
+    }
+
+    /// Render the module: package, imports, rules — with leading/
+    /// trailing comments on each construct, and freestanding comments
+    /// injected into the gaps in source order.
+    private func emitModule(
+        pkg: NodeRef, imports: [NodeRef], rules: [NodeRef], indent: Int
+    ) -> String {
+        let allTopLevel: [NodeRef] = [pkg] + imports + rules
+        var output = ""
+        var prevEndLine: UInt32 = 0
+
+        for (i, item) in allTopLevel.enumerated() {
+            let span = arena.span(of: item)
+
+            // Freestanding comments in the gap between the previous item
+            // and this one (or before the first item).
+            let gapComments = arena.bindings.freestanding.filter { c in
+                c.span.start.line > prevEndLine && c.span.start.line < span.start.line
+            }
+            let gapGroups = groupConsecutive(gapComments)
+
+            if i > 0 {
+                let prev = allTopLevel[i - 1]
+                let bothImports = isImportDecl(prev) && isImportDecl(item)
+                if gapGroups.isEmpty {
+                    // Tight imports get a single newline; everything else
+                    // gets a blank line between sections.
+                    output += bothImports ? "\n" : "\n\n"
+                } else {
+                    output += "\n\n"
+                }
+            }
+
+            for (g, group) in gapGroups.enumerated() {
+                if g > 0 { output += "\n\n" }
+                output += group.map { $0.text }.joined(separator: "\n")
+            }
+            if !gapGroups.isEmpty { output += "\n\n" }
+
+            output += emitWithBindings(item, indent: indent)
+            prevEndLine = span.end.line
+        }
+
+        // Freestanding comments after the last top-level construct.
+        let trailingFree = arena.bindings.freestanding.filter { $0.span.start.line > prevEndLine }
+        let trailingGroups = groupConsecutive(trailingFree)
+        for group in trailingGroups {
+            output += "\n\n" + group.map { $0.text }.joined(separator: "\n")
+        }
+
+        return output
     }
 
     /// Can this literal be inlined as a single-literal rule body without

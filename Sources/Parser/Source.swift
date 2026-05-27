@@ -22,8 +22,10 @@ public struct SourceFile: Hashable, Sendable {
     }
 }
 
-/// A position in a source file, expressed in 1-based lines/columns and a
-/// 0-based UTF-8 byte offset into the file's contents.
+/// A position in a source file: 1-based line and column, plus a 0-based
+/// offset measured in `Character`s (extended grapheme clusters) from the
+/// start of the file. The offset is used for ordering and span overlap
+/// checks; it isn't a byte index, so don't pass it to `Data` slicing.
 public struct SourceLocation: Hashable, Sendable, Comparable {
     public let line: UInt32
     public let column: UInt32

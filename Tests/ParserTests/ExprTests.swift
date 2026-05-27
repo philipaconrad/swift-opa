@@ -438,7 +438,7 @@ struct ParserPhase4ExprTests {
         }
     }
 
-    // MARK: every (deferred)
+    // MARK: every
 
     @Test
     func everyKeywordParses() throws {

@@ -275,9 +275,21 @@ public final class SyntaxArena {
     /// All comments in the file, sorted by `span.start`.
     public private(set) var comments: [Comment] = []
 
+    /// Set of comment start offsets already recorded — guards against
+    /// double-recording when the parser backtracks past a comment and
+    /// re-encounters it. Comments are uniquely identified by their start
+    /// offset because each `#` lives at a single source position.
+    private var recordedCommentOffsets: Set<UInt32> = []
+
     /// Root node (the `Node.module` produced by `parse`). Optional during
     /// construction, set by the parser before returning.
     public private(set) var root: NodeRef?
+
+    /// Comment-to-node bindings. Populated by `Parser.parse` via
+    /// `bindComments(arena:)` after the grammar pass completes. Empty
+    /// until then. Callers that mutate the arena post-parse should call
+    /// `bindComments` again to refresh.
+    public internal(set) var bindings: CommentBindings = CommentBindings()
 
     public init(source: SourceFile) {
         self.source = source
@@ -298,7 +310,15 @@ public final class SyntaxArena {
 
     /// Append a comment. The parser appends in source order, so the resulting
     /// `comments` array stays sorted by `span.start`.
+    ///
+    /// Skips the append if a comment with the same start offset has
+    /// already been recorded. This makes the call idempotent across
+    /// parser backtracks — speculative parses that consume comments and
+    /// later restore input would otherwise produce duplicate entries.
     public func appendComment(_ comment: Comment) {
+        if !recordedCommentOffsets.insert(comment.span.start.offset).inserted {
+            return
+        }
         comments.append(comment)
     }
 

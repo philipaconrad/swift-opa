@@ -17,9 +17,6 @@ public struct ParseError: Error, Sendable, Hashable {
         case unterminatedString
         case unterminatedRawString
         case missingPackage
-        /// A grammar production that this build of the parser does not yet
-        /// implement. The associated string names the feature.
-        case unsupportedSyntax(String)
         case other(String)
     }
 

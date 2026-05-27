@@ -144,7 +144,6 @@ struct ParserPhase9CorpusTests {
         case .unterminatedString: return "unterminatedString"
         case .unterminatedRawString: return "unterminatedRawString"
         case .missingPackage: return "missingPackage"
-        case .unsupportedSyntax: return "unsupportedSyntax"
         case .other(let s): return "other(\(s))"
         }
     }

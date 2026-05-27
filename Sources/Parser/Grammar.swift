@@ -1,19 +1,14 @@
 //
 //  Grammar.swift
-//  Parser - Rego grammar productions, organised top-down by phase.
+//  Parser - Rego grammar productions, organised top-down.
 //
 //  This file is intentionally large: reviewers should be able to scan the
 //  whole grammar in one pass. Logic that doesn't directly express the
 //  grammar (errors, types, source bookkeeping) lives in sibling files.
 //
-//  Phases (// MARK: sections below) follow the project plan:
-//    1. Trivia, identifiers, reserved-word check, refs, package, module.
-//    2. Lexical (scalars, strings, raw + template strings).      [TODO]
-//    3. Terms (composites, comprehensions).                       [TODO]
-//    4. Expressions (precedence, calls, every).                   [TODO]
-//    5. Literals, with-modifiers, some-decl, not.                 [TODO]
-//    6. Rule heads (set/obj/func/comp), bodies, else.             [TODO]
-//    7. Imports.                                                  [TODO]
+//  `// MARK:` sections below follow the grammar from the top down — module
+//  / package / refs / identifiers / scalars / strings / numbers / terms /
+//  composites / expressions / queries+literals / rules / imports.
 //
 
 import Foundation
@@ -294,7 +289,7 @@ final class Grammar {
         return c.isHexDigit
     }
 
-    // MARK: Phase 2 — Scalars
+    // MARK: Scalars
 
     /// `scalar = string | NUMBER | TRUE | FALSE | NULL`
     /// Dispatches on the first character.
@@ -344,7 +339,7 @@ final class Grammar {
         )
     }
 
-    // MARK: Phase 2 — Strings (double-quoted)
+    // MARK: Strings (double-quoted)
 
     /// JSON-style double-quoted string with escapes:
     /// `\"`, `\\`, `\/`, `\b`, `\f`, `\n`, `\r`, `\t`, `\uXXXX` (surrogate
@@ -388,7 +383,7 @@ final class Grammar {
         )
     }
 
-    // MARK: Phase 2 — Strings (raw)
+    // MARK: Strings (raw)
 
     /// Backtick-delimited raw string. No escapes. Multi-line allowed.
     func parseRawString(_ input: inout Substring) throws -> NodeRef {
@@ -416,7 +411,7 @@ final class Grammar {
         )
     }
 
-    // MARK: Phase 2 — Strings (template)
+    // MARK: Strings (template)
 
     /// `$"..."` or `` $`...` ``. Splits into alternating `templateLiteral`
     /// and `templateExpr` nodes. The expression inside `{ … }` is parsed
@@ -522,7 +517,7 @@ final class Grammar {
         )
     }
 
-    // MARK: Phase 2 — Numbers
+    // MARK: Numbers
 
     /// JSON-format number: `-? (0 | [1-9][0-9]*) (. [0-9]+)? ([eE][+-]? [0-9]+)?`
     /// Stored as raw text via the string pool so callers can parse to the
@@ -600,19 +595,21 @@ final class Grammar {
         )
     }
 
-    // MARK: Phase 3 — Terms (dispatcher)
+    // MARK: Terms (dispatcher)
 
-    /// `term = ref | var | scalar | array | object | set | …`
+    /// `term = ref | var | scalar | array | object | set | array-compr |
+    /// set-compr | object-compr | …`
     ///
     /// `parseTerm` parses a base term (`parseTermBase`) and then attaches
-    /// any number of suffixes that turn it into a richer ref/call structure:
-    ///   `.name`        — dot ref-arg
-    ///   `[expr]`       — bracket ref-arg (Phase 4)
-    ///   `(args)`       — function call (Phase 4)
+    /// any number of suffixes that turn it into a richer ref/call
+    /// structure:
+    ///   `.name`   — dot ref-arg
+    ///   `[expr]`  — bracket ref-arg
+    ///   `(args)`  — function call
     ///
-    /// Comprehensions (`[t | q]`, `{t | q}`, `{k: v | q}`) need expressions
-    /// and queries; they're deferred to phase 5 and currently raise
-    /// `unsupportedSyntax`.
+    /// Comprehension forms (`[t | q]`, `{t | q}`, `{k: v | q}`) are
+    /// recognised inside `parseArray` / `parseObjectOrSet` when a `|`
+    /// appears after the first element/value.
     func parseTerm(_ input: inout Substring) throws -> NodeRef {
         let start = input.startIndex
         var current = try parseTermBase(&input)
@@ -787,7 +784,7 @@ final class Grammar {
         return arena.add(.ref(head: current, args: [arg]), span: span(baseStart..<end))
     }
 
-    // MARK: Phase 3 — Composites
+    // MARK: Composites
 
     /// `array = "[" [ term { "," term } ] "]"` (trailing commas tolerated).
     /// `array-compr = "[" term "|" query "]"`.
@@ -1027,7 +1024,7 @@ final class Grammar {
         return arena.add(.set(elements: []), span: span(start..<end))
     }
 
-    // MARK: Phase 4 — Expressions
+    // MARK: Expressions
     //
     // Precedence stack (lowest → highest):
     //   parseExpr → parseLogicalOr → parseLogicalAnd → parseInfix
@@ -1276,7 +1273,7 @@ final class Grammar {
         return next != "." && next != "["
     }
 
-    // MARK: Phase 5 — Queries and literals
+    // MARK: Queries and literals
 
     /// `query = literal { ( ";" | LF ) literal }`
     /// Parses a sequence of literals separated by `;` or newlines and stops
@@ -1572,7 +1569,7 @@ final class Grammar {
         c == "\n" || c == "\r"
     }
 
-    // MARK: Phase 2 — Lexical helpers
+    // MARK: Lexical helpers
 
     /// Try to match an exact keyword followed by a non-identifier-cont
     /// character (or EOF). Consumes on success, leaves `input` untouched
@@ -1727,7 +1724,7 @@ final class Grammar {
         return scalar.value < 0x20
     }
 
-    // MARK: Phase 6 — Rules
+    // MARK: Rules
 
     /// `rule = [ "default" ] rule-head [ rule-body ] { else-clause }`.
     ///
@@ -2084,7 +2081,7 @@ final class Grammar {
         return arena.add(.elseClause(value: value, body: body), span: span(start..<end))
     }
 
-    // MARK: Phase 7 — Imports
+    // MARK: Imports
 
     /// `import = "import" ref [ "as" var ]`.
     func parseImport(_ input: inout Substring) throws -> NodeRef {

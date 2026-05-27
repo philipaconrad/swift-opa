@@ -17,6 +17,7 @@ public enum Parser {
         var input = Substring(source.contents)
         do {
             _ = try grammar.parseModule(&input)
+            arena.bindings = bindComments(arena)
             return .success(arena)
         } catch let err as ParseError {
             return .failure(ParseErrors([err]))
