@@ -333,9 +333,12 @@ extension OPA.Manifest {
     /// Construct a manifest by parsing the provided JSON-encoded data.
     /// - Parameter jsonData: The JSON-encoded manifest data.
     public init(from jsonData: Data) throws {
-        self = try JSONDecoder().decode(Self.self, from: jsonData)
-        // Reject duplicate keys. This runs after decoding, so malformed JSON reports a DecodingError.
-        try AST.RegoValue.checkForDuplicateKeys(json: jsonData)
+        // Decode from a single parse, rejecting duplicate keys. See JSONObject for why this differs by platform.
+        #if canImport(Darwin)
+            self = try Self(json: JSONObject.parse(jsonData))
+        #else
+            self = try AST.RegoValue.decodeRejectingDuplicateKeys(Self.self, json: jsonData)
+        #endif
     }
 
     enum CodingKeys: String, CodingKey {
