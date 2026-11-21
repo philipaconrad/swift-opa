@@ -46,6 +46,12 @@ Other platforms keep decoding these files with `JSONDecoder`, since `JSONSeriali
 For a 13.8 MB plan, loading on macOS is about 1.65x faster than in 0.0.12 and peaks at about 40% of the memory.
 On Linux, the same plan loads within about 7% of 0.0.12's time, with the same peak memory.
 
+### Breaking Change: Reject JSON numbers outside the supported range
+
+Non-integer numbers that `Decimal` can't represent, such as `1e300` or `5e-324`, used to load as `NaN` in `input` and `data.json` documents, where every such number compared equal to every other.
+They're now rejected with `RegoValue.JSONInputError.numberOutOfRange`, as `json.unmarshal` and `json.is_valid` already did.
+Out-of-range numbers in manifest `metadata` are rejected too (with `numberOutOfRange` on Darwin, and with a `DecodingError` on other platforms, where manifests are decoded with `JSONDecoder`).
+
 ## 0.0.12
 
 This release introduces a new API for amortizing `PreparedQuery` creation costs, as well as two bugfixes that improve performance during policy loading.
